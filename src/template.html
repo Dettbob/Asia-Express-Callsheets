@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asia Express 2 Callsheety</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a call-sheet timeline. Day tabs on top, one expandable row per block, block kind shown as a colored edge. */
+:root {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --ink: #16202b;
+  --muted: #5d6a78;
+  --line: #d9dee4;
+  --accent: #0a6a8a;
+  --accent-soft: #e0f0f5;
+  --warn-bg: #fff4d6;
+  --warn-ink: #6b4a00;
+  --k-move: #8a96a3;
+  --k-mission: #c2570c;
+  --k-game: #7a3fb0;
+  --k-check: #0a7a5a;
+  --k-rank: #b3261e;
+  --k-comm: #b07d00;
+  --k-setup: #b8c0c9;
+  --k-meet: #2f5fb3;
+  --k-flight: #5a6b7d;
+  --k-other: #8a96a3;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171d; --surface: #1a2129; --ink: #e8edf2; --muted: #98a5b3; --line: #2b3541;
+    --accent: #5cc0de; --accent-soft: #17323c; --warn-bg: #3a3010; --warn-ink: #f0d58a;
+    --k-move: #7b8794; --k-mission: #f08a4b; --k-game: #b98af0; --k-check: #4fd1a5; --k-rank: #ff7b72; --k-comm: #e6b93c; --k-setup: #4a5562;
+    --k-meet: #7fa6f0; --k-flight: #9db0c4; --k-other: #7b8794;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171d; --surface: #1a2129; --ink: #e8edf2; --muted: #98a5b3; --line: #2b3541;
+  --accent: #5cc0de; --accent-soft: #17323c; --warn-bg: #3a3010; --warn-ink: #f0d58a;
+  --k-move: #7b8794; --k-mission: #f08a4b; --k-game: #b98af0; --k-check: #4fd1a5; --k-rank: #ff7b72; --k-comm: #e6b93c; --k-setup: #4a5562;
+  --k-meet: #7fa6f0; --k-flight: #9db0c4; --k-other: #7b8794;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 940px; margin: 0 auto; padding: 20px 16px 56px; }
+h1 { font-family: var(--font-display); font-size: 28px; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 16px; font-size: 14px; max-width: 70ch; }
+
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; scrollbar-width: thin; }
+.tab { font: inherit; cursor: pointer; flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 6px 12px; border-radius: 8px; text-align: left; min-width: 74px; }
+.tab b { font-family: var(--font-display); font-size: 17px; display: block; line-height: 1.15; }
+.tab span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.tab.rr { border-style: dashed; background: transparent; }
+.tab.rr b { font-size: 14px; color: var(--muted); padding-top: 2px; }
+.tab.missing { opacity: .55; cursor: default; }
+.tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.tab[aria-selected="true"].rr b { color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.dayhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 10px 0 10px; }
+.dayhead h2 { font-family: var(--font-display); font-size: 22px; margin: 0; }
+.dayhead span { color: var(--muted); }
+.warn { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 12px; font-size: 13.5px; margin-bottom: 10px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+.fact { padding: 9px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 0 -1px -1px 0; }
+.fact small { display: block; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; }
+.fact div { font-weight: 500; }
+
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.btn { font: inherit; font-size: 13.5px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 6px 12px; border-radius: 6px; }
+.btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); margin-left: auto; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+.list { display: flex; flex-direction: column; gap: 6px; }
+.divider { text-align: center; font-family: var(--font-display); letter-spacing: .08em; font-size: 13px; padding: 6px; background: var(--k-rank); color: #fff; border-radius: 6px; margin: 6px 0; }
+.seg { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--kc); border-radius: 8px; }
+.seg > button { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 96px 1fr auto 18px; gap: 10px; align-items: center; padding: 10px 12px; }
+.seg > button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+.time { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px; line-height: 1.15; }
+.time.win { font-size: 13px; white-space: nowrap; }
+.time small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.title { font-weight: 600; text-wrap: balance; overflow-wrap: anywhere; }
+.title small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.chip { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chev { transition: transform .15s; color: var(--muted); justify-self: end; }
+.seg.open .chev { transform: rotate(90deg); }
+.seg.move { background: transparent; }
+.seg.move .title { font-weight: 500; color: var(--muted); }
+.detail { display: none; padding: 4px 14px 14px 14px; border-top: 1px dashed var(--line); }
+.seg.open .detail { display: block; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 16px; margin: 12px 0; }
+.grid small { display: block; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; }
+.grid .mono { font-family: var(--font-mono); font-size: 13px; }
+.grid a { color: var(--accent); }
+.units h4, .panel h3 { margin: 10px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.unit { padding: 8px 10px; background: var(--bg); border-radius: 6px; margin-bottom: 6px; }
+.unit b { font-weight: 600; }
+.unit .when { font-family: var(--font-mono); font-size: 12.5px; color: var(--accent); margin-left: 6px; }
+.unit .who { color: var(--muted); font-size: 13px; display: block; }
+.unit .note { font-size: 13px; display: block; margin-top: 2px; }
+.unit .leg { font-size: 13px; display: block; font-family: var(--font-mono); }
+.empty, .p { color: var(--muted); font-size: 13.5px; margin: 6px 0; }
+.p.n { color: var(--ink); }
+
+.panels { margin-top: 22px; display: flex; flex-direction: column; gap: 8px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.panel > summary { cursor: pointer; padding: 11px 14px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+.panel > summary::-webkit-details-marker { display: none; }
+.panel > summary::after { content: "+"; color: var(--muted); }
+.panel[open] > summary::after { content: "–"; }
+.panel .body { padding: 0 14px 14px; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; font-size: 12px; }
+td.m { font-family: var(--font-mono); font-size: 12.5px; white-space: nowrap; }
+.foot { margin-top: 26px; font-size: 12.5px; color: var(--muted); max-width: 80ch; }
+@media (max-width: 520px) {
+  .seg > button { grid-template-columns: 70px 1fr 16px; }
+  .seg > button .chip { display: none; }
+  .legend { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Asia Express 2 Prima CZ</h1>
+  <p class="sub">Natáčecí plán po dnech. ND je natáčecí den, přerušované záložky jsou mezi-dny bez natáčení hlavního dílu. Klikni na blok a rozbalí se lokace, GPS, jednotky a poznámky.</p>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div id="head"></div>
+
+  <div class="bar">
+    <button class="btn" id="expandAll" type="button">Rozbalit vše</button>
+    <button class="btn" id="hideMoves" type="button" aria-pressed="false">Skrýt přesuny</button>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="list" id="list"></div>
+  <div class="panels" id="panels"></div>
+
+  <p class="foot">Zdroj: callsheety AE2 PRI CZ. Kamery callsheet neuvádí. Jména jsou uvedená jen jako křestní, tak jak jsou v callsheetu, a jednotky jsou k blokům přiřazené podle GPS cílové lokace. Číslování ND a data u dnů s chybou v callsheetu jsou dopočítané z pořadí dnů.</p>
+</div>
+
+<script>
+const DAYS = /*__DATA__*/[];
+
+const KINDS = {
+  move:   { label: "Přesun",       c: "var(--k-move)" },
+  mission:{ label: "Race mission", c: "var(--k-mission)" },
+  game:   { label: "Amulet game",  c: "var(--k-game)" },
+  check:  { label: "Check in/out", c: "var(--k-check)" },
+  rank:   { label: "Ranking",      c: "var(--k-rank)" },
+  comm:   { label: "Communal",     c: "var(--k-comm)" },
+  setup:  { label: "Příprava",     c: "var(--k-setup)" },
+  meet:   { label: "Porada",       c: "var(--k-meet)" },
+  flight: { label: "Let",          c: "var(--k-flight)" },
+  other:  { label: "Ostatní",      c: "var(--k-other)" }
+};
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const toMin = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+const durLabel = (d) => { if (!d) return ""; const m = toMin(d); return m === 0 ? "0 min" : m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? " " + (m % 60) + " min" : ""}` : `${m} min`; };
+const mapLink = (g) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(g)}`;
+
+let cur = null, hideMoves = false, allOpen = false;
+
+function legText(l) {
+  const a = [l.dep ? `${l.dep}` : "", l.from || ""].filter(Boolean).join(" ");
+  const b = [l.arr ? `${l.arr}` : "", l.to || ""].filter(Boolean).join(" ");
+  return `${esc(a)} → ${esc(b)}${l.label ? ` <span class="who">(${esc(l.label)})</span>` : ""}`;
+}
+
+function unitInSeg(day, ref) {
+  const [ui, li, kind] = ref;
+  const u = day.units[ui], l = u.legs[li];
+  const when = kind === "arr" ? `příjezd ${esc(l.arr || "–")}` : `odjezd ${esc(l.dep || "–")}`;
+  const route = kind === "arr" ? `z: ${esc(l.from)} (odjezd ${esc(l.dep || "–")})` : `do: ${esc(l.to)} (příjezd ${esc(l.arr || "–")})`;
+  return `<div class="unit"><b>${esc(u.name)}</b><span class="when">${when}</span>
+    ${u.who ? `<span class="who">${esc(u.who)}</span>` : ""}
+    <span class="who">${route}</span>
+    ${(u.notes || []).map((n) => `<span class="note">${esc(n)}</span>`).join("")}</div>`;
+}
+
+function segHtml(day, seg, i) {
+  if (seg.divider) return `<div class="divider">${esc(seg.divider)}</div>`;
+  const k = KINDS[seg.kind] || KINDS.other;
+  const range = seg.t ? (seg.end && seg.end !== seg.t ? `do ${seg.end}` : "") : "";
+  const time = seg.t ? `${esc(seg.t)}<small>${range || (seg.kind === "rank" && !seg.d ? "konec" : "")}</small>` : (seg.win ? `${esc(seg.win)}<small>společné okno</small>` : `–<small>bez času</small>`);
+  let detail = "";
+  if (seg.kind === "meet" || seg.kind === "flight") {
+    detail = `<div class="grid">
+      <div><small>${seg.kind === "meet" ? "Týmy" : "Typ"}</small>${esc(seg.team || "–")}</div>
+      <div><small>Kde</small>${esc(seg.loc || "–")}</div>
+      ${seg.d ? `<div><small>Délka</small>${durLabel(seg.d)} (${esc(seg.t)}–${esc(seg.end)})</div>` : `<div><small>Čas</small>${esc(seg.t)}</div>`}
+    </div>
+    ${(seg.who || []).length ? `<div class="units"><h4>Kdo</h4>${seg.who.map((w) => `<div class="unit">${esc(w)}</div>`).join("")}</div>` : ""}
+    ${(seg.remarks || []).map((n) => `<p class="p n">${esc(n)}</p>`).join("")}`;
+  } else {
+    const us = (seg.units || []).map((r) => unitInSeg(day, r));
+    detail = `<div class="grid">
+      <div><small>Tým</small>${esc(seg.team || "–")}</div>
+      <div><small>Lokace</small>${esc(seg.loc || "–")}</div>
+      <div><small>GPS</small>${seg.gps ? `<span class="mono">${esc(seg.gps)}</span><br><a href="${mapLink(seg.gps)}" target="_blank" rel="noopener">Otevřít v mapě</a>` : "–"}</div>
+      <div><small>Délka</small>${seg.d ? `${durLabel(seg.d)} (${esc(seg.t)}–${esc(seg.end)})` : (seg.win ? `bez vlastního času, v okně ${esc(seg.win)}` : (seg.end ? `${esc(seg.t)}–${esc(seg.end)}` : "–"))}</div>
+      ${seg.km ? `<div><small>Vzdálenost</small>${esc(seg.km)}</div>` : ""}
+      <div><small>Typ</small>${k.label}</div>
+    </div>
+    <div class="units"><h4>Jednotky a účastníci na lokaci</h4>
+      ${us.length ? us.join("") : `<p class="empty">${seg.same ? "Jednotky jsou uvedené u prvního bloku na stejné lokaci." : "Callsheet k tomuto bloku žádné jednotky neuvádí."}</p>`}
+    </div>`;
+  }
+  return `<div class="seg ${seg.kind === "move" ? "move" : ""}${allOpen ? " open" : ""}" style="--kc:${k.c}" data-kind="${seg.kind}">
+    <button type="button" aria-expanded="${allOpen}">
+      <span class="time${!seg.t && seg.win ? " win" : ""}">${time}</span>
+      <span class="title">${esc(seg.name)}<small>${esc(seg.loc)}</small></span>
+      <span class="chip" title="${esc(seg.team)}">${esc(seg.team)}</span>
+      <span class="chev" aria-hidden="true">▸</span>
+    </button>
+    <div class="detail">${detail}</div>
+  </div>`;
+}
+
+function table(head, rows) {
+  const isGps = (c) => /°/.test(c || "") && /^\d/.test(c);
+  return `<table><thead><tr>${head.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td${isGps(c) ? ' class="m"' : ""}>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+function panelsHtml(day) {
+  const out = [];
+  if (day.units.length) {
+    out.push(["Jednotky a časy odjezdů", day.units.map((u) => `<div class="unit"><b>${esc(u.name)}</b>
+      ${u.who ? `<span class="who">${esc(u.who)}</span>` : ""}
+      ${u.bf || u.load ? `<span class="who">${u.bf ? "Snídaně: " + esc(u.bf) : ""}${u.bf && u.load ? " · " : ""}${u.load ? "Nakládka: " + esc(u.load) : ""}</span>` : ""}
+      ${u.legs.map((l) => `<span class="leg">${legText(l)}</span>`).join("")}
+      ${u.notes.map((n) => `<span class="note">${esc(n)}</span>`).join("")}</div>`).join("")]);
+  }
+  if (day.flights && day.flights.length) {
+    out.push(["Lety", table(["Čas", "Let", "Trasa", "Letiště a poznámky"], day.flights.map((f) => [f.time, f.flight, f.route, f.info.join(" · ")]))]);
+  }
+  if (day.prep.length) out.push(["Prep (O.S.)", table(["Tým", "Akce", "Kde", "Kdo"], day.prep.map((r) => [r.team, r.action, r.where, r.who]))]);
+  if (day.hotels.length) out.push(["Hotely", table(["Tým", "Město", "Hotel", "Adresa", "GPS"], day.hotels.map((r) => [r.team, r.city, r.hotel, r.address, r.gps]))]);
+  if (day.meals.length) out.push(["Jídlo", table(["Tým", "Jídlo", "Typ", "Kde"], day.meals.map((r) => [r.team, r.meal, r.type, r.where]))]);
+  if (day.notes.length) out.push(["Poznámky produkce", `<ul>${day.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>`]);
+  return out.map(([t, b]) => `<details class="panel"><summary>${t}</summary><div class="body">${b}</div></details>`).join("");
+}
+
+function render() {
+  const day = DAYS.find((d) => d.id === cur) || DAYS[0];
+  $("#tabs").innerHTML = DAYS.map((d) =>
+    `<button class="tab${d.rr ? " rr" : ""}${d.missing ? " missing" : ""}" role="tab" data-id="${d.id}" aria-selected="${d.id === day.id}"${d.missing ? ' aria-disabled="true"' : ""}><b>${esc(d.tab)}</b><span>${esc(d.sub)}</span></button>`).join("");
+  const sel = $(".tab[aria-selected='true']");
+  if (sel && sel.scrollIntoView) sel.scrollIntoView({ block: "nearest", inline: "center" });
+  if (day.missing) {
+    $("#head").innerHTML = `<div class="dayhead"><h2>Day ${day.day}</h2><span>${esc(day.sub)}</span></div><div class="warn">Callsheet pro tento den nebyl v podkladech. Pokud je to natáčecí den, v číslování ND počítám s tím, že je to další ND v pořadí.</div>`;
+    $("#list").innerHTML = ""; $("#panels").innerHTML = ""; $("#legend").innerHTML = "";
+    return;
+  }
+  $("#head").innerHTML = `<div class="dayhead"><h2>${day.rr ? "Mezi-den" : esc(day.tab)}</h2><span>${esc(day.long)}${day.rr && day.rrTitle ? " · " + esc(day.rrTitle) : ""} · callsheet Day ${day.day}</span></div>
+    ${day.warn ? `<div class="warn">${esc(day.warn)}</div>` : ""}
+    <div class="facts">${day.facts.map(([k, v]) => `<div class="fact"><small>${esc(k)}</small><div>${esc(v)}</div></div>`).join("")}</div>`;
+  const used = new Set(day.segs.map((s) => s.kind).filter(Boolean));
+  $("#legend").innerHTML = Object.entries(KINDS).filter(([k]) => used.has(k)).map(([, k]) => `<span><i style="background:${k.c}"></i>${k.label}</span>`).join("");
+  $("#list").innerHTML = day.segs.length ? day.segs.map((s, i) => segHtml(day, s, i)).join("") : `<p class="empty">Callsheet neobsahuje plán bloků.</p>`;
+  $("#panels").innerHTML = panelsHtml(day);
+  applyFilter();
+  $("#expandAll").textContent = allOpen ? "Sbalit vše" : "Rozbalit vše";
+}
+
+function applyFilter() {
+  document.querySelectorAll(".seg").forEach((el) => { el.style.display = hideMoves && el.dataset.kind === "move" ? "none" : ""; });
+}
+
+document.addEventListener("click", (e) => {
+  const tab = e.target.closest(".tab");
+  if (tab) {
+    if (tab.classList.contains("missing")) return;
+    cur = tab.dataset.id; try { history.replaceState(null, "", "#" + cur); } catch (_) {}
+    render(); return;
+  }
+  const b = e.target.closest(".seg > button");
+  if (b) { const s = b.parentElement; const o = s.classList.toggle("open"); b.setAttribute("aria-expanded", o); }
+});
+$("#expandAll").addEventListener("click", () => {
+  allOpen = !allOpen;
+  document.querySelectorAll(".seg").forEach((s) => { s.classList.toggle("open", allOpen); s.querySelector("button").setAttribute("aria-expanded", allOpen); });
+  $("#expandAll").textContent = allOpen ? "Sbalit vše" : "Rozbalit vše";
+});
+$("#hideMoves").addEventListener("click", (e) => {
+  hideMoves = !hideMoves;
+  e.currentTarget.setAttribute("aria-pressed", hideMoves);
+  applyFilter();
+});
+
+function pickStart() {
+  const h = location.hash.slice(1);
+  if (DAYS.some((d) => d.id === h && !d.missing)) return h;
+  const t = new Date(); const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  const today = DAYS.find((d) => d.date === iso && !d.missing);
+  return (today || DAYS.find((d) => !d.missing)).id;
+}
+window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (DAYS.some((d) => d.id === h && !d.missing)) { cur = h; render(); } });
+cur = pickStart();
+render();
+</script>
+</body>
+</html>
