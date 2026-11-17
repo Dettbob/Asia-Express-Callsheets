@@ -448,6 +448,22 @@ def parse_day(path):
     }
 
 
+PHONE_RE = re.compile(r"\+?\d[\d ]{7,}\d")
+NAME_BEFORE_ARROW = re.compile(r"\b([A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\wáčďéěíňóřšťúůýž]+)\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][\wáčďéěíňóřšťúůýž]+(?=\s*>\s*\+?\d)")
+
+
+def scrub(o):
+    """Remove phone numbers (and surnames written right before them) from every string in the data."""
+    if isinstance(o, dict):
+        return {k: scrub(v) for k, v in o.items()}
+    if isinstance(o, list):
+        return [scrub(v) for v in o]
+    if isinstance(o, str) and PHONE_RE.search(o) and "°" not in o:
+        o = NAME_BEFORE_ARROW.sub(r"\1", o)
+        return PHONE_RE.sub("(telefon vynechán)", o)
+    return o
+
+
 def main():
     src, out = sys.argv[1], sys.argv[2]
     files = sorted(glob.glob(src.rstrip("/") + "/*DAY_*.pdf"), key=lambda f: int(re.search(r"DAY_(\d+)", f).group(1)))
@@ -465,7 +481,7 @@ def main():
             d["label"] = None
         else:
             d["nd"] = d["day"] - 1 - len([x for x in rr_days if x < d["day"]])
-    json.dump(days, open(out, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    json.dump(scrub(days), open(out, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print("wrote", out, len(days), "days")
 
 
